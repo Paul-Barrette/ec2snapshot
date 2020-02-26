@@ -74,11 +74,11 @@ def get_instances_list(project):
         instances = ec2.instances.all()
     return instances
 
-def pending_snapshot_in_progress(volumes)
+def pending_snapshot_in_progress(volumes):
     snapshot_in_progress = list(volumes.snapshots.all())
-    if snapshot_in_progress == "pending"
+    if snapshot_in_progress == "pending":
         return True
-    else
+    else:
         return False
 
 @instances.command('snapshot')
