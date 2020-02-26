@@ -74,6 +74,13 @@ def get_instances_list(project):
         instances = ec2.instances.all()
     return instances
 
+def pending_snapshot_in_progress(volumes)
+    snapshot_in_progress = list(volumes.snapshots.all())
+    if snapshot_in_progress == "pending"
+        return True
+    else
+        return False
+
 @instances.command('snapshot')
 @click.option("--project", default=None, help="Only snapshot instances that have the tag 'Project' with the value specified")
 
@@ -87,8 +94,11 @@ def create_snapshot(project):
                 i.stop()
                 i.wait_until_stopped()
                 for v in i.volumes.all():
-                    print("Creating snapshot of volume {0}".format(v.id))
-                    v.create_snapshot(Description="Created by the ec2ss.py utility")
+                    if pending_snapshot_in_progress(v):
+                        print("Snapshot for volume {0} already in progress. Skipping".format(v.id))
+                    else:
+                        print("Creating snapshot of volume {0}".format(v.id))
+                        v.create_snapshot(Description="Created by the ec2ss.py utility")
                 print("Starting back up instance {0}".format(i.id) + ". Please wait...")
                 i.start()
                 i.wait_until_running()
