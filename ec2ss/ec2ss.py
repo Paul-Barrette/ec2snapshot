@@ -77,7 +77,7 @@ def get_instances_list(project):
 @instances.command('snapshot')
 @click.option("--project", default=None, help="Only snapshot instances that have the tag 'Project' with the value specified")
 
-def create_instances(project):
+def create_snapshot(project):
     "Create snapshot for EC2 instances"
     instances= get_instances_list(project)
     if len(list(instances)) > 0 and instances:
