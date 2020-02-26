@@ -1,4 +1,5 @@
 import boto3
+import botocore
 import click
 
 session = boto3.Session(profile_name="ec2snapshot")
@@ -79,16 +80,23 @@ def create_instances(project):
     instances= get_instances_list(project)
     if len(list(instances)) > 0 and instances:
         for i in instances:
-            for v in i.volumes.all():
-                print("Creating snapshot of volume {0}".format(v.id))
-                v.create_snapshot(Description="Created by the ec2ss.py utility")
+            if i.state["Name"] == "running":
+                print("Stopping instance {0}".format(i.id) + ". Please wait...")
+                i.stop()
+                i.wait_until_stopped()
+                for v in i.volumes.all():
+                    print("Creating snapshot of volume {0}".format(v.id))
+                    v.create_snapshot(Description="Created by the ec2ss.py utility")
+                print("Starting back up instance {0}".format(i.id) + ". Please wait...")
+                i.start()
+                i.wait_until_running()
+            else:
+                print("No need to stop instance {0}. It is not running".format(i.id))
+                for v in i.volumes.all():
+                    print("Creating snapshot of volume {0}".format(v.id))
+                    v.create_snapshot(Description="Created by the ec2ss.py utility")
+
     return
-
-
-
-
-
-
 
 @instances.command('list')
 @click.option("--project", default=None, help="Only list instances that have the tag 'Project' with the value specified")
@@ -125,7 +133,11 @@ def stop_instances(project):
     for i in instances:
         if i.state["Name"] == "running":
             print("Stopping {0} ...".format(i.id))
-            i.stop()
+            try:
+                i.stop()
+            except botocore.exeptions.ClientError as e:
+                print("Could not stop instance {0}.".format(i.id) + str(e))
+                continue
         else:
             print("Instance {0} is not stoppable".format(i.id) + ". This instance is " + i.state["Name"] + ".")
     return
@@ -140,6 +152,11 @@ def start_instances(project):
         if i.state["Name"] == "stopped":
             print("Starting {0} ...".format(i.id))
             i.start()
+            try:
+                i.start()
+            except botocore.exeptions.ClientError as e:
+                print("Could not start instance {0}.".format(i.id) + str(e))
+                continue
         else:
             print("Instance {0} is not startable".format(i.id) + ". This instance is " + i.state["Name"] + ".")
     return
