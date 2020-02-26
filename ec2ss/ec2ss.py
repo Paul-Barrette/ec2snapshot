@@ -5,6 +5,53 @@ session = boto3.Session(profile_name="ec2snapshot")
 ec2 = session.resource("ec2")
 
 @click.group()
+def cli():
+    """ec2ss manages sanpshots"""
+
+@cli.group('snapshots')
+def snapshots():
+    """Commands for snapshots"""
+
+@snapshots.command('list')
+@click.option("--project", default=None, help="Only list snapshots for the instance that have the tag 'Project' with the value specified")
+def list_volumes(project):
+    "Lists the snapshots of EC2 instances for the account"
+    instances= get_instances_list(project)
+    for i in instances:
+        for v in i.volumes.all():
+            for s in v.snapshots.all():
+                print(", ".join((i.id, v.id, s.id, s.state, s.progress, s.start_time.strftime("%c"))), end="")
+                if(v.encrypted):
+                    print(", Encrypted")
+                else:
+                    print(", Not encrypted")
+            else:
+                print(i.id + " " + v.id + " There are no snapshots for the volume of this instance.")
+    return
+
+@cli.group('volumes')
+def volumes():
+    """Commands for instances"""
+
+@volumes.command('list')
+@click.option("--project", default=None, help="Only list volumes for the instance that have the tag 'Project' with the value specified")
+def list_volumes(project):
+    "Lists the volumes of EC2 instances for the account"
+    instances= get_instances_list(project)
+    for i in instances:
+        for v in i.volumes.all():
+            print(i.state["Name"])
+            if i.state["Name"] != "terminated":
+                print(", ".join((i.id, v.id, v.state, str(v.size) + "Gib")), end="")
+                if(v.encrypted):
+                    print(", Encrypted")
+                else:
+                    print(", Not encrypted")
+            else:
+                print(i.id + " There are no volumes for this instance. This instance is " + i.state["Name"] + ".")
+    return
+
+@cli.group('instances')
 def instances():
     """Commands for instances"""
 
@@ -23,6 +70,25 @@ def get_instances_list(project):
         print("--------------------------------------------------")
         instances = ec2.instances.all()
     return instances
+
+@instances.command('snapshot')
+@click.option("--project", default=None, help="Only snapshot instances that have the tag 'Project' with the value specified")
+
+def create_instances(project):
+    "Create snapshot for EC2 instances"
+    instances= get_instances_list(project)
+    if len(list(instances)) > 0 and instances:
+        for i in instances:
+            for v in i.volumes.all():
+                print("Creating snapshot of volume {0}".format(v.id))
+                v.create_snapshot(Description="Created by the ec2ss.py utility")
+    return
+
+
+
+
+
+
 
 @instances.command('list')
 @click.option("--project", default=None, help="Only list instances that have the tag 'Project' with the value specified")
@@ -45,7 +111,7 @@ def list_instances(project):
             if(i.public_dns_name):
                 print(", " + i.public_dns_name)
             else:
-                print(", None(Private Server)")
+                print(", None (Private Server)")
     else:
         print("There are no instances that are assigned with a Project tag named: '" + project + "'")
     return
@@ -79,4 +145,4 @@ def start_instances(project):
     return
 
 if __name__ == '__main__':
-    instances()
+    cli()
