@@ -15,7 +15,7 @@ def snapshots():
 
 @snapshots.command('list')
 @click.option("--project", default=None, help="Only list snapshots for the instance that have the tag 'Project' with the value specified")
-def list_volumes(project):
+def list_snapshots(project):
     "Lists the snapshots of EC2 instances for the account"
     instances= get_instances_list(project)
     for i in instances:
@@ -26,8 +26,8 @@ def list_volumes(project):
                     print(", Encrypted")
                 else:
                     print(", Not encrypted")
-            else:
-                print(i.id + " " + v.id + " There are no snapshots for the volume of this instance.")
+                if s.state == "completed":
+                    break
     return
 
 @cli.group('volumes')
