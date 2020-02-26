@@ -14,8 +14,10 @@ def snapshots():
     """Commands for snapshots"""
 
 @snapshots.command('list')
-@click.option("--project", default=None, help="Only list snapshots for the instance that have the tag 'Project' with the value specified")
-def list_snapshots(project):
+@click.option("--project", default=None, help="Only list the most recent snapshots for the instance that have the tag 'Project' with the value specified")
+@click.option("--all", "list_all", default=False, is_flag= True, help="Lists all snapshots for the instance that have the tag 'Project' with the value specified")
+
+def list_snapshots(project, list_all):
     "Lists the snapshots of EC2 instances for the account"
     instances= get_instances_list(project)
     for i in instances:
@@ -26,7 +28,7 @@ def list_snapshots(project):
                     print(", Encrypted")
                 else:
                     print(", Not encrypted")
-                if s.state == "completed":
+                if s.state == "completed" and not list_all:
                     break
     return
 
